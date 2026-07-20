@@ -13,6 +13,19 @@ for many files at once.
   sorting), shown in a live preview
 - Save each PDF next to its Word document, or into one folder you pick
 - Progress and per-file status while converting
+- Multi-language interface (English and German included), auto-selected from the
+  macOS system language
+
+## Languages
+
+All interface text lives in JSON translation files under `locales/` — one per
+language (`en.json`, `de.json`). The app picks a language automatically from the
+macOS UI language and falls back to English.
+
+- **Add a language:** copy `locales/en.json` to e.g. `locales/fr.json`, translate the
+  values, and add its code to `SUPPORTED_LANGUAGES` in `main.py`.
+- **Force a language** (for testing): set `WORDTOPDF_LANG=de` (or `en`) in the
+  environment before launching.
 
 ## Requirements
 

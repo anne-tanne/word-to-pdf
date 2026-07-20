@@ -149,23 +149,27 @@ class WordToPdfApp:
     # ---------- UI construction ----------
 
     def _build_ui(self):
-        # Pinned bottom bar (Convert + progress), always visible, outside the scroll area.
-        self.progress = ttk.Progressbar(self.root, mode="determinate")
-        self.progress.pack(side="bottom", fill="x", padx=24, pady=(0, 16))
-
+        # Pinned action bar at the bottom, outside the scroll area. The progress bar
+        # lives inside it but is only shown while a conversion is running.
         bottom = tk.Frame(self.root, bg=BG)
-        bottom.pack(side="bottom", fill="x", padx=24, pady=(6, 0))
+        bottom.pack(side="bottom", fill="x", padx=24, pady=(6, 16))
+
+        action = tk.Frame(bottom, bg=BG)
+        action.pack(fill="x")
 
         self.status_label = tk.Label(
-            bottom, textvariable=self.status_text, font=("SF Pro Text", 11),
+            action, textvariable=self.status_text, font=("SF Pro Text", 11),
             bg=BG, fg=TEXT_MUTED, anchor="w", justify="left", wraplength=380,
         )
         self.status_label.pack(side="left", fill="x", expand=True)
 
         self.convert_button = self._button(
-            bottom, t("btn_convert"), self.start_conversion, primary=True
+            action, t("btn_convert"), self.start_conversion, primary=True
         )
         self.convert_button.pack(side="right")
+
+        self.progress = ttk.Progressbar(bottom, mode="determinate")
+        # Packed on demand in start_conversion; hidden again in _finish_conversion.
 
         # Everything else lives in a scrollable, width-adaptive content area, so
         # resizing the window never clips content; it just scrolls.
@@ -586,6 +590,7 @@ class WordToPdfApp:
         self.convert_button.configure(bg="#c9c9cf", cursor="arrow")
         self.convert_button.unbind("<Button-1>")
         self.progress.configure(maximum=len(selected), value=0)
+        self.progress.pack(fill="x", pady=(10, 0))  # show only while converting
         self.status_text.set(t("status_converting"))
 
         thread = threading.Thread(
@@ -631,6 +636,7 @@ class WordToPdfApp:
 
     def _finish_conversion(self, succeeded, failed, needs_enable_editing):
         self.is_converting = False
+        self.progress.pack_forget()  # hide the progress bar again when idle
         self._render_file_list()
         self.convert_button.configure(bg=ACCENT, cursor="pointinghand")
         self.convert_button.bind("<Button-1>", lambda e: self.start_conversion())

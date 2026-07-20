@@ -9,7 +9,7 @@ APP = ["main.py"]
 DATA_FILES = ["locales"]
 OPTIONS = {
     "argv_emulation": False,
-    "iconfile": None,
+    "iconfile": "AppIcon.icns",
     "plist": {
         "CFBundleName": "Word to PDF",
         "CFBundleDisplayName": "Word to PDF",

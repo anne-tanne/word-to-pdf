@@ -179,16 +179,16 @@ class WordToPdfApp:
     # ---------- Dropzone (empty state) ----------
 
     def _build_dropzone(self, parent):
-        """A clickable drop area with an upload icon and instructions, shown when
-        the list is empty. Clicking it opens the file browser; dragging files or
-        folders over it highlights it, and dropping adds them."""
+        """A clickable drop area with an upload icon and instructions. Clicking it
+        offers a choice of picking files or a folder; dragging files or folders over
+        it highlights it, and dropping adds them. It stays visible after files are added."""
         self._dropzone_active = False
-        canvas = tk.Canvas(parent, height=150, bg=CARD_BG, highlightthickness=0,
+        canvas = tk.Canvas(parent, height=190, bg=CARD_BG, highlightthickness=0,
                            cursor="pointinghand")
-        canvas.pack(fill="x", pady=(8, 0))
+        canvas.pack(fill="x", pady=(10, 0))
         self.dropzone_canvas = canvas
         canvas.bind("<Configure>", lambda e: self._draw_dropzone())
-        canvas.bind("<Button-1>", lambda e: self.add_files())
+        canvas.bind("<Button-1>", lambda e: self._dropzone_click())
         if _DND_AVAILABLE and hasattr(canvas, "drop_target_register"):
             try:
                 canvas.drop_target_register(DND_FILES)
@@ -198,6 +198,16 @@ class WordToPdfApp:
             except Exception:
                 pass
         self._draw_dropzone()
+
+    def _dropzone_click(self):
+        """Offer a choice: pick individual files, or pick a folder (adds all its docs)."""
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label=t("menu_choose_files"), command=self.add_files)
+        menu.add_command(label=t("menu_choose_folder"), command=self.add_folder)
+        try:
+            menu.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery())
+        finally:
+            menu.grab_release()
 
     def _dropzone_enter(self, event):
         self._dropzone_active = True
@@ -226,26 +236,26 @@ class WordToPdfApp:
         icon = ACCENT if active else "#aaa2c0"
         c.configure(bg="#f3f0fb" if active else CARD_BG)
 
-        m = 6
+        # Larger inset gives more padding between the border and the content.
+        m = 14
         c.create_rectangle(m, m, w - m, h - m, outline=border, dash=(6, 5), width=2)
 
-        cx = w // 2
-        top = h // 2 - 40
-        # upward arrow
-        c.create_line(cx, top + 30, cx, top + 2, fill=icon, width=3, capstyle="round")
-        c.create_line(cx - 10, top + 12, cx, top + 2, fill=icon, width=3,
+        # Centre the whole icon + text block on both axes.
+        cx, cy = w // 2, h // 2
+        tip = cy - 46                 # arrow tip
+        c.create_line(cx, tip, cx, tip + 30, fill=icon, width=3, capstyle="round")
+        c.create_line(cx - 11, tip + 12, cx, tip, fill=icon, width=3,
                       capstyle="round", joinstyle="round")
-        c.create_line(cx + 10, top + 12, cx, top + 2, fill=icon, width=3,
+        c.create_line(cx + 11, tip + 12, cx, tip, fill=icon, width=3,
                       capstyle="round", joinstyle="round")
-        # tray beneath the arrow
-        ty = top + 40
-        c.create_line(cx - 18, ty - 7, cx - 18, ty, fill=icon, width=3, capstyle="round")
-        c.create_line(cx + 18, ty - 7, cx + 18, ty, fill=icon, width=3, capstyle="round")
-        c.create_line(cx - 18, ty, cx + 18, ty, fill=icon, width=3, capstyle="round")
+        ty = tip + 42                 # tray baseline
+        c.create_line(cx - 19, ty - 8, cx - 19, ty, fill=icon, width=3, capstyle="round")
+        c.create_line(cx + 19, ty - 8, cx + 19, ty, fill=icon, width=3, capstyle="round")
+        c.create_line(cx - 19, ty, cx + 19, ty, fill=icon, width=3, capstyle="round")
 
-        c.create_text(cx, h // 2 + 30, text=t("dropzone_primary"),
+        c.create_text(cx, cy + 18, text=t("dropzone_primary"),
                       fill=TEXT_MAIN, font=("SF Pro Text", 13, "bold"))
-        c.create_text(cx, h // 2 + 52, text=t("dropzone_secondary"),
+        c.create_text(cx, cy + 40, text=t("dropzone_secondary"),
                       fill=ACCENT if active else TEXT_MUTED, font=("SF Pro Text", 11))
 
     def _size_to_screen(self):
@@ -307,16 +317,15 @@ class WordToPdfApp:
         # --- File list card ---
         list_card = self._card(outer)
 
-        self._section_label(list_card, t("section_files"))
-
-        # The dropzone is the main way to add files (click to browse, or drag & drop)
-        # and stays visible even after files are added. Two secondary buttons cover
-        # browsing for a folder and clearing the list.
-        button_row = tk.Frame(list_card, bg=CARD_BG)
-        button_row.pack(fill="x", pady=(8, 0))
-        add_folder_btn = self._button(button_row, t("btn_add_folder"), self.add_folder)
-        add_folder_btn.pack(side="left")
-        clear_btn = self._button(button_row, t("btn_clear_all"), self.clear_files)
+        # Section title with a "Clear all" button on the right. The dropzone below
+        # is the single way to add documents: click it to choose files or a folder,
+        # or drag & drop files/folders onto it.
+        header = tk.Frame(list_card, bg=CARD_BG)
+        header.pack(fill="x")
+        tk.Frame(header, bg=ACCENT, width=3, height=16).pack(side="left", padx=(0, 9))
+        tk.Label(header, text=t("section_files"), font=("SF Pro Text", 14, "bold"),
+                 bg=CARD_BG, fg=TEXT_MAIN).pack(side="left")
+        clear_btn = self._button(header, t("btn_clear_all"), self.clear_files)
         clear_btn.pack(side="right")
 
         self._build_dropzone(list_card)

@@ -26,8 +26,8 @@ class WordToPdfApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Word to PDF Converter")
-        self.root.geometry("660x820")
-        self.root.minsize(580, 660)
+        self.root.geometry("660x880")
+        self.root.minsize(580, 640)
         self.root.configure(bg=BG)
 
         self.dest_folder = tk.StringVar()
@@ -70,6 +70,26 @@ class WordToPdfApp:
             font=("SF Pro Text", 12), bg=BG, fg=TEXT_MUTED, anchor="w",
         )
         subtitle.pack(fill="x", pady=(2, 16))
+
+        # --- Bottom action bar + progress ---
+        # Packed before the cards and anchored to the bottom so the Convert button
+        # and progress bar always stay visible, even if the window is short.
+        self.progress = ttk.Progressbar(outer, mode="determinate")
+        self.progress.pack(side="bottom", fill="x", pady=(10, 0))
+
+        bottom = tk.Frame(outer, bg=BG)
+        bottom.pack(side="bottom", fill="x")
+
+        self.status_label = tk.Label(
+            bottom, textvariable=self.status_text, font=("SF Pro Text", 11),
+            bg=BG, fg=TEXT_MUTED, anchor="w", justify="left", wraplength=380,
+        )
+        self.status_label.pack(side="left", fill="x", expand=True)
+
+        self.convert_button = self._button(
+            bottom, "Convert to PDF", self.start_conversion, primary=True
+        )
+        self.convert_button.pack(side="right")
 
         # --- File list card ---
         list_card = self._card(outer, expand=True)
@@ -178,24 +198,6 @@ class WordToPdfApp:
         self.dest_button = self._button(dest_row, "Choose Folder…", self.pick_dest_folder)
         self.dest_button.pack(side="left")
         self.toggle_dest_mode()
-
-        # --- Bottom action bar ---
-        bottom = tk.Frame(outer, bg=BG)
-        bottom.pack(fill="x")
-
-        self.status_label = tk.Label(
-            bottom, textvariable=self.status_text, font=("SF Pro Text", 11),
-            bg=BG, fg=TEXT_MUTED, anchor="w", justify="left", wraplength=380,
-        )
-        self.status_label.pack(side="left", fill="x", expand=True)
-
-        self.convert_button = self._button(
-            bottom, "Convert to PDF", self.start_conversion, primary=True
-        )
-        self.convert_button.pack(side="right")
-
-        self.progress = ttk.Progressbar(outer, mode="determinate")
-        self.progress.pack(fill="x", pady=(10, 0))
 
     def _card(self, parent, expand=False):
         card = tk.Frame(parent, bg=CARD_BG, highlightbackground=BORDER, highlightthickness=1)

@@ -20,13 +20,15 @@ WORD_EXTENSIONS = (".doc", ".docx")
 SUPPORTED_LANGUAGES = ("en", "de")
 DEFAULT_LANGUAGE = "en"
 
-BG = "#f5f5f7"
+BG = "#f4f2f7"          # soft lavender-tinted background (matches the logo)
 CARD_BG = "#ffffff"
-ACCENT = "#2f6fed"
-ACCENT_HOVER = "#255bc4"
+ACCENT = "#7a4fd0"       # purple, drawn from the logo gradient
+ACCENT_HOVER = "#653cba"
+SUBTLE = "#efedf4"       # secondary button / input fill
+SUBTLE_HOVER = "#e5e2ee"
 TEXT_MAIN = "#1d1d1f"
 TEXT_MUTED = "#6e6e73"
-BORDER = "#e2e2e6"
+BORDER = "#e6e3ec"
 SUCCESS = "#1a8a4a"
 ERROR = "#c0392b"
 
@@ -37,10 +39,18 @@ _STRINGS = {}   # active language
 _FALLBACK = {}  # English, used when a key is missing
 
 
+def _resource_base():
+    return os.environ.get("RESOURCEPATH") or os.path.dirname(os.path.abspath(__file__))
+
+
 def _locales_dir():
     """Folder holding the JSON translation files, in both dev and the built app."""
-    base = os.environ.get("RESOURCEPATH") or os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, "locales")
+    return os.path.join(_resource_base(), "locales")
+
+
+def _assets_dir():
+    """Folder holding image assets (the header logo), in both dev and the built app."""
+    return os.path.join(_resource_base(), "assets")
 
 
 def _read_locale(lang):
@@ -101,11 +111,13 @@ class WordToPdfApp:
     def __init__(self, root):
         self.root = root
         self.root.title(t("app_title"))
-        self.root.geometry("660x880")
         # Min width keeps the button rows from clipping; height can shrink freely
         # because the content scrolls.
         self.root.minsize(560, 320)
+        self._size_to_screen()
         self.root.configure(bg=BG)
+
+        self.logo_image = self._load_logo()
 
         self.dest_folder = tk.StringVar()
         self.status_text = tk.StringVar(value=t("status_start"))
@@ -129,6 +141,26 @@ class WordToPdfApp:
         for var in (self.prefix_text, self.suffix_text, self.base_name_text):
             var.trace_add("write", self._update_naming_preview)
         self._update_naming_state()
+
+    def _size_to_screen(self):
+        """Open at a comfortable size that always fits the current screen, centered."""
+        self.root.update_idletasks()
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        w = min(700, max(560, sw - 120))
+        h = min(900, sh - 140)
+        x = max((sw - w) // 2, 0)
+        y = max((sh - h) // 3, 24)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
+
+    def _load_logo(self):
+        """Load the header logo (a downscaled copy of the app icon); None if missing."""
+        try:
+            img = tk.PhotoImage(file=os.path.join(_assets_dir(), "logo.png"))
+            # 128px source → ~43px, a tidy header size after subsampling.
+            return img.subsample(3, 3)
+        except Exception:
+            return None
 
     # ---------- UI construction ----------
 
@@ -156,17 +188,26 @@ class WordToPdfApp:
         outer = self._build_scroll_area(self.root)
         self.root.bind("<Configure>", self._on_resize)
 
-        title = tk.Label(
-            outer, text=t("app_title"), font=("SF Pro Display", 20, "bold"),
-            bg=BG, fg=TEXT_MAIN, anchor="w",
-        )
-        title.pack(fill="x")
+        header = tk.Frame(outer, bg=BG)
+        header.pack(fill="x", pady=(0, 18))
 
-        subtitle = tk.Label(
-            outer, text=t("subtitle"),
+        if self.logo_image is not None:
+            tk.Label(header, image=self.logo_image, bg=BG).pack(side="left", padx=(0, 14))
+
+        header_text = tk.Frame(header, bg=BG)
+        header_text.pack(side="left", fill="x", expand=True)
+
+        tk.Label(
+            header_text, text=t("app_title"), font=("SF Pro Display", 26, "bold"),
+            bg=BG, fg=TEXT_MAIN, anchor="w",
+        ).pack(fill="x")
+
+        self.subtitle_label = tk.Label(
+            header_text, text=t("subtitle"),
             font=("SF Pro Text", 12), bg=BG, fg=TEXT_MUTED, anchor="w",
+            justify="left", wraplength=460,
         )
-        subtitle.pack(fill="x", pady=(2, 16))
+        self.subtitle_label.pack(fill="x", pady=(3, 0))
 
         # --- File list card ---
         list_card = self._card(outer)
@@ -209,12 +250,12 @@ class WordToPdfApp:
         tk.Label(affix_row, text=t("name_before"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
         self.prefix_entry = tk.Entry(affix_row, textvariable=self.prefix_text, width=9,
-                                     font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+                                     font=("SF Pro Text", 12), relief="flat", bg=SUBTLE, fg=TEXT_MAIN)
         self.prefix_entry.pack(side="left", ipady=3)
         tk.Label(affix_row, text=t("name_and_after"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
         self.suffix_entry = tk.Entry(affix_row, textvariable=self.suffix_text, width=9,
-                                     font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+                                     font=("SF Pro Text", 12), relief="flat", bg=SUBTLE, fg=TEXT_MAIN)
         self.suffix_entry.pack(side="left", ipady=3)
 
         number_row = tk.Frame(naming_card, bg=CARD_BG)
@@ -225,7 +266,7 @@ class WordToPdfApp:
             fg=TEXT_MAIN, activebackground=CARD_BG, selectcolor=CARD_BG, anchor="w",
         ).pack(side="left")
         self.base_entry = tk.Entry(number_row, textvariable=self.base_name_text, width=16,
-                                   font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+                                   font=("SF Pro Text", 12), relief="flat", bg=SUBTLE, fg=TEXT_MAIN)
         self.base_entry.pack(side="left", ipady=3, padx=(8, 4))
         tk.Label(number_row, text=t("name_sequence"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left")
@@ -252,7 +293,7 @@ class WordToPdfApp:
 
         self.dest_entry = tk.Entry(
             dest_row, textvariable=self.dest_folder, font=("SF Pro Text", 12),
-            state="readonly", relief="flat", bg="#f0f0f2", fg=TEXT_MAIN,
+            state="readonly", relief="flat", bg=SUBTLE, fg=TEXT_MAIN,
         )
         self.dest_entry.pack(side="left", fill="x", expand=True, ipady=6, padx=(0, 8))
 
@@ -263,31 +304,37 @@ class WordToPdfApp:
     def _card(self, parent, expand=False):
         card = tk.Frame(parent, bg=CARD_BG, highlightbackground=BORDER, highlightthickness=1)
         if expand:
-            card.pack(fill="both", expand=True, pady=(0, 12))
+            card.pack(fill="both", expand=True, pady=(0, 14))
         else:
-            card.pack(fill="x", pady=(0, 12))
+            card.pack(fill="x", pady=(0, 14))
         inner = tk.Frame(card, bg=CARD_BG)
-        inner.pack(fill="both", expand=True, padx=16, pady=14)
+        inner.pack(fill="both", expand=True, padx=20, pady=18)
         return inner
 
     def _section_label(self, parent, text):
+        row = tk.Frame(parent, bg=CARD_BG)
+        row.pack(fill="x")
+        # Small accent bar to the left of each section heading.
+        tk.Frame(row, bg=ACCENT, width=3, height=16).pack(side="left", padx=(0, 9))
         label = tk.Label(
-            parent, text=text, font=("SF Pro Text", 13, "bold"), bg=CARD_BG, fg=TEXT_MAIN, anchor="w",
+            row, text=text, font=("SF Pro Text", 14, "bold"), bg=CARD_BG, fg=TEXT_MAIN, anchor="w",
         )
-        label.pack(fill="x")
-        return label
+        label.pack(side="left", fill="x", expand=True)
+        return row
 
     def _button(self, parent, text, command, primary=False):
-        bg = ACCENT if primary else "#e8e8ed"
+        base = ACCENT if primary else SUBTLE
+        hover = ACCENT_HOVER if primary else SUBTLE_HOVER
         fg = "#ffffff" if primary else TEXT_MAIN
         btn = tk.Label(
             parent, text=text, font=("SF Pro Text", 12, "bold" if primary else "normal"),
-            bg=bg, fg=fg, padx=14, pady=7, cursor="pointinghand",
+            bg=base, fg=fg, padx=16, pady=8, cursor="pointinghand",
         )
         btn.bind("<Button-1>", lambda e: command())
-        if primary:
-            btn.bind("<Enter>", lambda e: btn.configure(bg=ACCENT_HOVER))
-            btn.bind("<Leave>", lambda e: btn.configure(bg=ACCENT))
+        btn.bind("<Enter>", lambda e: btn.configure(bg=hover))
+        btn.bind("<Leave>", lambda e: btn.configure(bg=base))
+        # Remember the resting colour so disabled/again states can restore it.
+        btn._base_bg = base
         return btn
 
     def _build_scroll_area(self, parent):
@@ -331,8 +378,10 @@ class WordToPdfApp:
 
     def _on_resize(self, event):
         if event.widget is self.root:
-            # Let the status text wrap to the available width.
+            # Let text wrap to the available width as the window resizes.
             self.status_label.configure(wraplength=max(event.width - 220, 160))
+            if hasattr(self, "subtitle_label"):
+                self.subtitle_label.configure(wraplength=max(event.width - 160, 200))
 
     # ---------- File selection ----------
 

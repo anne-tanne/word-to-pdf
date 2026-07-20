@@ -6,7 +6,7 @@ Build with:
 from setuptools import setup
 
 APP = ["main.py"]
-DATA_FILES = ["locales"]
+DATA_FILES = ["locales", "assets"]
 OPTIONS = {
     "argv_emulation": False,
     "iconfile": "AppIcon.icns",

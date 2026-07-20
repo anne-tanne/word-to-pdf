@@ -286,6 +286,9 @@ class WordToPdfApp:
         self.dest_button.pack(side="left")
         self.toggle_dest_mode()
 
+        # Enable wheel/trackpad scrolling over every widget in the window.
+        self._bind_mousewheel(self.root)
+
     def _card(self, parent, expand=False):
         card = tk.Frame(parent, bg=CARD_BG, highlightbackground=BORDER, highlightthickness=1)
         if expand:
@@ -339,27 +342,36 @@ class WordToPdfApp:
         # …and make the content width follow the window (horizontal responsiveness).
         canvas.bind("<Configure>", lambda e: canvas.itemconfigure(window, width=e.width))
 
-        # Mouse-wheel / trackpad scrolling anywhere in the window.
-        canvas.bind_all("<MouseWheel>", self._on_mousewheel)
-        canvas.bind_all("<Button-4>", self._on_mousewheel)
-        canvas.bind_all("<Button-5>", self._on_mousewheel)
-
         content = tk.Frame(inner, bg=BG)
         content.pack(fill="both", expand=True, padx=24, pady=20)
         return content
+
+    def _bind_mousewheel(self, widget):
+        """Bind wheel/trackpad scrolling directly on a widget and all its children.
+        Direct binding is more reliable than bind_all on macOS + Tk 9."""
+        widget.bind("<MouseWheel>", self._on_mousewheel, add="+")
+        widget.bind("<Button-4>", self._on_mousewheel, add="+")
+        widget.bind("<Button-5>", self._on_mousewheel, add="+")
+        for child in widget.winfo_children():
+            self._bind_mousewheel(child)
 
     def _on_mousewheel(self, event):
         canvas = getattr(self, "_page_canvas", None)
         if canvas is None:
             return
-        if getattr(event, "num", None) == 4:       # Linux scroll up
+        num = getattr(event, "num", 0)
+        if num == 4:                                 # Linux scroll up
             direction = -1
-        elif getattr(event, "num", None) == 5:     # Linux scroll down
+        elif num == 5:                               # Linux scroll down
             direction = 1
         else:                                        # macOS / Windows
-            direction = -1 if event.delta > 0 else 1
+            delta = getattr(event, "delta", 0)
+            if delta == 0:
+                return
+            direction = -1 if delta > 0 else 1
         # A few lines per wheel notch / trackpad tick so scrolling feels responsive.
         canvas.yview_scroll(direction * 3, "units")
+        return "break"
 
     def _on_resize(self, event):
         if event.widget is self.root:
@@ -429,11 +441,13 @@ class WordToPdfApp:
         self.file_rows = {}
 
         if not self.files:
-            tk.Label(
+            empty = tk.Label(
                 self.list_frame, text=t("list_empty"),
                 font=("SF Pro Text", 12), bg=CARD_BG, fg=TEXT_MUTED,
                 wraplength=340, justify="center",
-            ).pack(pady=20)
+            )
+            empty.pack(pady=20)
+            self._bind_mousewheel(empty)
             return
 
         for path in self.files:
@@ -466,6 +480,10 @@ class WordToPdfApp:
                 )
                 remove_btn.bind("<Button-1>", lambda e, p=path: self.remove_file(p))
                 remove_btn.pack(side="right", padx=(0, 10))
+
+        # New rows need the wheel binding too so scrolling works over the list.
+        for child in self.list_frame.winfo_children():
+            self._bind_mousewheel(child)
 
     # ---------- Destination ----------
 

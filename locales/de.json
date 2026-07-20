@@ -24,7 +24,7 @@
   "name_preview": "Erste Datei wird zu:  {name}",
 
   "section_dest": "3. PDFs speichern unter",
-  "dest_same": "Im selben Ordner wie das Word-Dokument",
+  "dest_same": "Im selben Ordner wie das entsprechende Word-Dokument",
   "dest_same_hint": "Jedes PDF wird im selben Ordner wie das Word-Dokument gespeichert",
   "btn_choose_folder": "Ordner wählen…",
 

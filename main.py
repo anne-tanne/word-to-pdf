@@ -271,6 +271,13 @@ class WordToPdfApp:
         tk.Label(number_row, text=t("name_sequence"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left")
 
+        # Fields stay clickable: focusing one selects its mode, and each field's
+        # text is kept in its own variable so switching modes never loses it.
+        for entry, mode in ((self.prefix_entry, "affix"), (self.suffix_entry, "affix"),
+                            (self.base_entry, "number")):
+            entry.configure(highlightthickness=1, highlightbackground=CARD_BG, highlightcolor=ACCENT)
+            entry.bind("<FocusIn>", lambda e, m=mode: self._select_naming_mode(m))
+
         tk.Label(naming_card, textvariable=self.naming_preview, font=("SF Pro Text", 11, "italic"),
                  bg=CARD_BG, fg=TEXT_MUTED, anchor="w").pack(fill="x", pady=(10, 0))
 
@@ -508,13 +515,20 @@ class WordToPdfApp:
             "base": self.base_name_text.get().strip() or t("name_default_base"),
         }
 
+    def _select_naming_mode(self, mode):
+        """Called when a naming field is clicked/focused — activate that field's mode."""
+        if self.naming_mode.get() != mode:
+            self.naming_mode.set(mode)
+        self._update_naming_state()
+
     def _update_naming_state(self):
+        # All fields stay editable so you can click straight into one; the active
+        # group gets an accent outline. Text is preserved in each field's variable.
         mode = self.naming_mode.get()
-        affix_state = "normal" if mode == "affix" else "disabled"
-        number_state = "normal" if mode == "number" else "disabled"
-        self.prefix_entry.configure(state=affix_state)
-        self.suffix_entry.configure(state=affix_state)
-        self.base_entry.configure(state=number_state)
+        for entry, entry_mode in ((self.prefix_entry, "affix"), (self.suffix_entry, "affix"),
+                                  (self.base_entry, "number")):
+            active = (mode == entry_mode)
+            entry.configure(highlightbackground=ACCENT if active else CARD_BG)
         self._update_naming_preview()
 
     def _update_naming_preview(self, *args):

@@ -321,12 +321,13 @@ class WordToPdfApp:
         if canvas is None:
             return
         if getattr(event, "num", None) == 4:       # Linux scroll up
-            delta = 1
+            direction = -1
         elif getattr(event, "num", None) == 5:     # Linux scroll down
-            delta = -1
+            direction = 1
         else:                                        # macOS / Windows
-            delta = event.delta
-        canvas.yview_scroll(-1 if delta > 0 else 1, "units")
+            direction = -1 if event.delta > 0 else 1
+        # A few lines per wheel notch / trackpad tick so scrolling feels responsive.
+        canvas.yview_scroll(direction * 3, "units")
 
     def _on_resize(self, event):
         if event.widget is self.root:

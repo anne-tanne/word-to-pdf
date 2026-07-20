@@ -6,7 +6,7 @@
   "btn_add_files": "Dateien hinzufügen…",
   "btn_add_folder": "Ordner hinzufügen…",
   "btn_clear_all": "Alle entfernen",
-  "list_empty": "Noch keine Dateien. Verwenden Sie oben „Dateien hinzufügen…“ oder „Ordner hinzufügen…“.",
+  "list_empty": "Noch keine Dateien. Verwenden Sie oben „Dateien hinzufügen…“ oder „Ordner hinzufügen…“, oder ziehen Sie Dateien und Ordner direkt hierher.",
   "row_waiting": "Wartet",
   "row_remove": "Entfernen",
   "row_converting": "Wird konvertiert…",

@@ -16,6 +16,14 @@ import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+    _DND_AVAILABLE = True
+except Exception:  # library missing or failed to load — app still works without drag & drop
+    TkinterDnD = None
+    DND_FILES = None
+    _DND_AVAILABLE = False
+
 WORD_EXTENSIONS = (".doc", ".docx")
 SUPPORTED_LANGUAGES = ("en", "de")
 DEFAULT_LANGUAGE = "en"
@@ -134,6 +142,39 @@ class WordToPdfApp:
         for var in (self.prefix_text, self.suffix_text, self.base_name_text):
             var.trace_add("write", self._update_naming_preview)
         self._update_naming_state()
+
+        self._setup_dnd()
+
+    def _setup_dnd(self):
+        """Let the user drop files/folders from Finder anywhere onto the window."""
+        if not _DND_AVAILABLE or not hasattr(self.root, "drop_target_register"):
+            return
+        try:
+            self.root.drop_target_register(DND_FILES)
+            self.root.dnd_bind("<<Drop>>", self._on_drop)
+        except Exception:
+            pass
+
+    def _on_drop(self, event):
+        """Collect Word documents from dropped files and folders, then add them."""
+        try:
+            paths = self.root.tk.splitlist(event.data)
+        except Exception:
+            paths = event.data.split()
+        collected = []
+        for p in paths:
+            if os.path.isdir(p):
+                for name in sorted(os.listdir(p)):
+                    if name.startswith("~$"):
+                        continue
+                    if name.lower().endswith(WORD_EXTENSIONS):
+                        collected.append(os.path.join(p, name))
+            elif p.lower().endswith(WORD_EXTENSIONS) and not os.path.basename(p).startswith("~$"):
+                collected.append(p)
+        if collected:
+            self._add_paths(collected)
+        else:
+            messagebox.showinfo(t("dlg_no_found_title"), t("dlg_no_found_msg"))
 
     def _size_to_screen(self):
         """Open at a comfortable size that always fits the current screen, centered."""
@@ -471,9 +512,9 @@ class WordToPdfApp:
             empty = tk.Label(
                 self.list_frame, text=t("list_empty"),
                 font=("SF Pro Text", 12), bg=CARD_BG, fg=TEXT_MUTED,
-                wraplength=340, justify="center",
+                wraplength=460, justify="left", anchor="w",
             )
-            empty.pack(pady=20)
+            empty.pack(fill="x", pady=16, padx=2)
             self._bind_mousewheel(empty)
             return
 
@@ -713,7 +754,13 @@ def convert_with_word(docx_path, pdf_path):
 
 def main():
     load_language(detect_language())
-    root = tk.Tk()
+    if _DND_AVAILABLE:
+        try:
+            root = TkinterDnD.Tk()  # drag & drop enabled root
+        except Exception:
+            root = tk.Tk()
+    else:
+        root = tk.Tk()
     try:
         root.tk.call("tk", "scaling", 1.4)
     except tk.TclError:

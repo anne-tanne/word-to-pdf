@@ -10,6 +10,9 @@ DATA_FILES = ["locales"]
 OPTIONS = {
     "argv_emulation": False,
     "iconfile": "AppIcon.icns",
+    # Include tkinterdnd2 as real files so its native tkdnd library is bundled
+    # and drag & drop works in the built app.
+    "packages": ["tkinterdnd2"],
     "plist": {
         "CFBundleName": "Word to PDF",
         "CFBundleDisplayName": "Word to PDF",

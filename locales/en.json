@@ -6,7 +6,7 @@
   "btn_add_files": "Add Files…",
   "btn_add_folder": "Add Folder…",
   "btn_clear_all": "Clear All",
-  "list_empty": "No files yet. Use “Add Files…” or “Add Folder…” above.",
+  "list_empty": "No files yet. Use “Add Files…” or “Add Folder…” above, or drag files and folders here.",
   "row_waiting": "Waiting",
   "row_remove": "Remove",
   "row_converting": "Converting…",

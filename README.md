@@ -6,7 +6,8 @@ for many files at once.
 
 ## Features
 
-- Add individual files (**Add Files…**) or every Word document in a folder (**Add Folder…**)
+- Add individual files (**Add Files…**) or every Word document in a folder (**Add Folder…**),
+  or drag files and folders straight from Finder onto the window
 - Tick/untick each file to choose exactly what gets converted, or remove it from the list
 - Batch-name the PDFs: keep the original names, add text before/after each name, or
   rename them all to a base name plus a sequential number (with zero-padding for clean
@@ -40,6 +41,7 @@ macOS UI language and falls back to English.
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+pip install tkinterdnd2   # for drag & drop (optional; the app runs without it)
 python3 main.py
 ```
 
@@ -47,7 +49,7 @@ python3 main.py
 
 ```bash
 source venv/bin/activate
-pip install py2app
+pip install py2app tkinterdnd2
 python3 setup.py py2app
 ```
 

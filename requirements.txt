@@ -1,0 +1,5 @@
+# Runtime dependency for drag & drop (the app still runs without it).
+tkinterdnd2>=0.4
+
+# Only needed to build the double-clickable .app
+py2app>=0.28

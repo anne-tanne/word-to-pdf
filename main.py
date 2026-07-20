@@ -183,13 +183,12 @@ class WordToPdfApp:
         the list is empty. Clicking it opens the file browser; dragging files or
         folders over it highlights it, and dropping adds them."""
         self._dropzone_active = False
-        canvas = tk.Canvas(parent, height=180, bg=CARD_BG, highlightthickness=0,
+        canvas = tk.Canvas(parent, height=150, bg=CARD_BG, highlightthickness=0,
                            cursor="pointinghand")
-        canvas.pack(fill="x", pady=6)
+        canvas.pack(fill="x", pady=(8, 0))
         self.dropzone_canvas = canvas
         canvas.bind("<Configure>", lambda e: self._draw_dropzone())
         canvas.bind("<Button-1>", lambda e: self.add_files())
-        self._bind_mousewheel(canvas)
         if _DND_AVAILABLE and hasattr(canvas, "drop_target_register"):
             try:
                 canvas.drop_target_register(DND_FILES)
@@ -310,19 +309,20 @@ class WordToPdfApp:
 
         self._section_label(list_card, t("section_files"))
 
+        # The dropzone is the main way to add files (click to browse, or drag & drop)
+        # and stays visible even after files are added. Two secondary buttons cover
+        # browsing for a folder and clearing the list.
         button_row = tk.Frame(list_card, bg=CARD_BG)
         button_row.pack(fill="x", pady=(8, 0))
-
-        add_files_btn = self._button(button_row, t("btn_add_files"), self.add_files, primary=True)
-        add_files_btn.pack(side="left")
         add_folder_btn = self._button(button_row, t("btn_add_folder"), self.add_folder)
-        add_folder_btn.pack(side="left", padx=(8, 0))
-
+        add_folder_btn.pack(side="left")
         clear_btn = self._button(button_row, t("btn_clear_all"), self.clear_files)
         clear_btn.pack(side="right")
 
+        self._build_dropzone(list_card)
+
         self.list_frame = tk.Frame(list_card, bg=CARD_BG)
-        self.list_frame.pack(fill="both", expand=True, pady=(10, 0))
+        self.list_frame.pack(fill="x")
 
         # --- Naming card ---
         naming_card = self._card(outer)
@@ -582,8 +582,10 @@ class WordToPdfApp:
         self.file_rows = {}
 
         if not self.files:
-            self._build_dropzone(self.list_frame)
             return
+
+        # small gap between the dropzone above and the file rows
+        tk.Frame(self.list_frame, bg=CARD_BG, height=10).pack(fill="x")
 
         for path in self.files:
             row = tk.Frame(self.list_frame, bg=CARD_BG)

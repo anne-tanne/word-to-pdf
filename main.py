@@ -26,13 +26,20 @@ class WordToPdfApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Word to PDF Converter")
-        self.root.geometry("640x720")
-        self.root.minsize(560, 560)
+        self.root.geometry("660x820")
+        self.root.minsize(580, 660)
         self.root.configure(bg=BG)
 
         self.dest_folder = tk.StringVar()
         self.status_text = tk.StringVar(value="Add Word documents to get started.")
         self.same_as_source = tk.BooleanVar(value=True)
+
+        # Batch naming
+        self.naming_mode = tk.StringVar(value="keep")  # keep | affix | number
+        self.prefix_text = tk.StringVar()
+        self.suffix_text = tk.StringVar()
+        self.base_name_text = tk.StringVar(value="Document")
+        self.naming_preview = tk.StringVar()
 
         self.files = []  # ordered list of absolute paths
         self.file_included = {}  # path -> tk.BooleanVar
@@ -41,6 +48,10 @@ class WordToPdfApp:
 
         self._build_ui()
         self._render_file_list()
+
+        for var in (self.prefix_text, self.suffix_text, self.base_name_text):
+            var.trace_add("write", self._update_naming_preview)
+        self._update_naming_state()
 
     # ---------- UI construction ----------
 
@@ -93,10 +104,58 @@ class WordToPdfApp:
         scrollbar.pack(side="right", fill="y")
         self.list_canvas = canvas
 
+        # --- Naming card ---
+        naming_card = self._card(outer)
+        self._section_label(naming_card, "2. PDF names")
+
+        keep_row = tk.Frame(naming_card, bg=CARD_BG)
+        keep_row.pack(fill="x", pady=(6, 0))
+        tk.Radiobutton(
+            keep_row, text="Keep the original file names", variable=self.naming_mode,
+            value="keep", command=self._update_naming_state, font=("SF Pro Text", 12),
+            bg=CARD_BG, fg=TEXT_MAIN, activebackground=CARD_BG, selectcolor=CARD_BG, anchor="w",
+        ).pack(side="left")
+
+        affix_row = tk.Frame(naming_card, bg=CARD_BG)
+        affix_row.pack(fill="x", pady=(4, 0))
+        tk.Radiobutton(
+            affix_row, text="Add text:", variable=self.naming_mode, value="affix",
+            command=self._update_naming_state, font=("SF Pro Text", 12), bg=CARD_BG,
+            fg=TEXT_MAIN, activebackground=CARD_BG, selectcolor=CARD_BG, anchor="w",
+        ).pack(side="left")
+        tk.Label(affix_row, text="before", font=("SF Pro Text", 11), bg=CARD_BG,
+                 fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
+        self.prefix_entry = tk.Entry(affix_row, textvariable=self.prefix_text, width=10,
+                                     font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+        self.prefix_entry.pack(side="left", ipady=3)
+        tk.Label(affix_row, text="and after", font=("SF Pro Text", 11), bg=CARD_BG,
+                 fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
+        self.suffix_entry = tk.Entry(affix_row, textvariable=self.suffix_text, width=10,
+                                     font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+        self.suffix_entry.pack(side="left", ipady=3)
+        tk.Label(affix_row, text="the name", font=("SF Pro Text", 11), bg=CARD_BG,
+                 fg=TEXT_MUTED).pack(side="left", padx=(6, 0))
+
+        number_row = tk.Frame(naming_card, bg=CARD_BG)
+        number_row.pack(fill="x", pady=(4, 0))
+        tk.Radiobutton(
+            number_row, text="Rename and number:", variable=self.naming_mode, value="number",
+            command=self._update_naming_state, font=("SF Pro Text", 12), bg=CARD_BG,
+            fg=TEXT_MAIN, activebackground=CARD_BG, selectcolor=CARD_BG, anchor="w",
+        ).pack(side="left")
+        self.base_entry = tk.Entry(number_row, textvariable=self.base_name_text, width=16,
+                                   font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
+        self.base_entry.pack(side="left", ipady=3, padx=(8, 4))
+        tk.Label(number_row, text="1, 2, 3 …", font=("SF Pro Text", 11), bg=CARD_BG,
+                 fg=TEXT_MUTED).pack(side="left")
+
+        tk.Label(naming_card, textvariable=self.naming_preview, font=("SF Pro Text", 11, "italic"),
+                 bg=CARD_BG, fg=TEXT_MUTED, anchor="w").pack(fill="x", pady=(10, 0))
+
         # --- Destination card ---
         dest_card = self._card(outer)
 
-        self._section_label(dest_card, "2. Save PDFs to")
+        self._section_label(dest_card, "3. Save PDFs to")
         check_row = tk.Frame(dest_card, bg=CARD_BG)
         check_row.pack(fill="x", pady=(6, 0))
 
@@ -201,6 +260,7 @@ class WordToPdfApp:
                 self.file_included[path] = tk.BooleanVar(value=True)
                 added += 1
         self._render_file_list()
+        self._update_naming_preview()
         if added:
             self.status_text.set(f"{len(self.files)} file(s) ready. Uncheck any you don't want to convert.")
 
@@ -210,6 +270,7 @@ class WordToPdfApp:
             del self.file_included[path]
             self.file_rows.pop(path, None)
             self._render_file_list()
+            self._update_naming_preview()
 
     def clear_files(self):
         if self.is_converting:
@@ -218,6 +279,7 @@ class WordToPdfApp:
         self.file_included = {}
         self.file_rows = {}
         self._render_file_list()
+        self._update_naming_preview()
         self.status_text.set("Add Word documents to get started.")
 
     def _render_file_list(self):
@@ -279,6 +341,35 @@ class WordToPdfApp:
         if folder:
             self.dest_folder.set(folder)
 
+    # ---------- Naming ----------
+
+    def _current_naming(self):
+        return {
+            "mode": self.naming_mode.get(),
+            "prefix": self.prefix_text.get(),
+            "suffix": self.suffix_text.get(),
+            "base": self.base_name_text.get().strip() or "Document",
+        }
+
+    def _update_naming_state(self):
+        mode = self.naming_mode.get()
+        affix_state = "normal" if mode == "affix" else "disabled"
+        number_state = "normal" if mode == "number" else "disabled"
+        self.prefix_entry.configure(state=affix_state)
+        self.suffix_entry.configure(state=affix_state)
+        self.base_entry.configure(state=number_state)
+        self._update_naming_preview()
+
+    def _update_naming_preview(self, *args):
+        selected = [p for p in self.files if self.file_included[p].get()]
+        total = max(len(selected), 1)
+        if selected:
+            example = os.path.splitext(os.path.basename(selected[0]))[0]
+        else:
+            example = "Report"
+        stem = compute_pdf_stem(self._current_naming(), example, 0, total)
+        self.naming_preview.set(f"First file becomes:  {stem}.pdf")
+
     # ---------- Conversion ----------
 
     def start_conversion(self):
@@ -298,6 +389,8 @@ class WordToPdfApp:
                 return
             os.makedirs(dest_folder, exist_ok=True)
 
+        naming = self._current_naming()
+
         self.is_converting = True
         self._render_file_list()
         self.convert_button.configure(bg="#c9c9cf", cursor="arrow")
@@ -305,17 +398,21 @@ class WordToPdfApp:
         self.progress.configure(maximum=len(selected), value=0)
         self.status_text.set("Converting… Microsoft Word will open in the background.")
 
-        thread = threading.Thread(target=self._convert_all, args=(selected, same_as_source, dest_folder), daemon=True)
+        thread = threading.Thread(
+            target=self._convert_all, args=(selected, same_as_source, dest_folder, naming), daemon=True
+        )
         thread.start()
 
-    def _convert_all(self, paths, same_as_source, dest_folder):
+    def _convert_all(self, paths, same_as_source, dest_folder, naming):
         succeeded = 0
         failed = 0
         needs_enable_editing = []
-        for path in paths:
+        total = len(paths)
+        for index, path in enumerate(paths):
             self.root.after(0, self._set_row_status, path, "Converting…", TEXT_MUTED)
             target_folder = os.path.dirname(path) if same_as_source else dest_folder
-            pdf_name = os.path.splitext(os.path.basename(path))[0] + ".pdf"
+            original_stem = os.path.splitext(os.path.basename(path))[0]
+            pdf_name = compute_pdf_stem(naming, original_stem, index, total) + ".pdf"
             pdf_path = os.path.join(target_folder, pdf_name)
             ok, error = convert_with_word(path, pdf_path)
             if ok:
@@ -368,6 +465,19 @@ class WordToPdfApp:
                 f"{failed} file(s) could not be converted. Make sure Microsoft Word is installed "
                 "and the files aren't open or password-protected.",
             )
+
+
+def compute_pdf_stem(naming, original_stem, index, total):
+    """Return the PDF file name (without extension) for one document, based on the
+    chosen batch-naming mode. `index` is 0-based; `total` is the count being converted."""
+    mode = naming.get("mode", "keep")
+    if mode == "affix":
+        return f"{naming.get('prefix', '')}{original_stem}{naming.get('suffix', '')}"
+    if mode == "number":
+        base = naming.get("base") or "Document"
+        width = len(str(total))
+        return f"{base} {str(index + 1).zfill(width)}"
+    return original_stem
 
 
 def convert_with_word(docx_path, pdf_path):

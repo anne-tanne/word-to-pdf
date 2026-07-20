@@ -8,6 +8,9 @@ for many files at once.
 
 - Add individual files (**Add Files…**) or every Word document in a folder (**Add Folder…**)
 - Tick/untick each file to choose exactly what gets converted, or remove it from the list
+- Batch-name the PDFs: keep the original names, add text before/after each name, or
+  rename them all to a base name plus a sequential number (with zero-padding for clean
+  sorting), shown in a live preview
 - Save each PDF next to its Word document, or into one folder you pick
 - Progress and per-file status while converting
 

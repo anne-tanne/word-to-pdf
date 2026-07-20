@@ -348,29 +348,51 @@ class WordToPdfApp:
 
     def _bind_mousewheel(self, widget):
         """Bind wheel/trackpad scrolling directly on a widget and all its children.
-        Direct binding is more reliable than bind_all on macOS + Tk 9."""
+        Direct binding is more reliable than bind_all on macOS + Tk 9. We bind both
+        <MouseWheel> (mouse wheels) and <TouchpadScroll> (trackpads on Tk 9)."""
         widget.bind("<MouseWheel>", self._on_mousewheel, add="+")
         widget.bind("<Button-4>", self._on_mousewheel, add="+")
         widget.bind("<Button-5>", self._on_mousewheel, add="+")
+        try:
+            widget.bind("<TouchpadScroll>", self._on_touchpad_scroll, add="+")
+        except tk.TclError:
+            pass  # older Tk without the TouchpadScroll event
         for child in widget.winfo_children():
             self._bind_mousewheel(child)
 
-    def _on_mousewheel(self, event):
+    def _scroll_by(self, units):
         canvas = getattr(self, "_page_canvas", None)
-        if canvas is None:
-            return
+        if canvas is not None and units:
+            canvas.yview_scroll(units, "units")
+
+    def _on_mousewheel(self, event):
         num = getattr(event, "num", 0)
         if num == 4:                                 # Linux scroll up
             direction = -1
         elif num == 5:                               # Linux scroll down
             direction = 1
-        else:                                        # macOS / Windows
+        else:                                        # macOS / Windows mouse wheel
             delta = getattr(event, "delta", 0)
             if delta == 0:
                 return
             direction = -1 if delta > 0 else 1
-        # A few lines per wheel notch / trackpad tick so scrolling feels responsive.
-        canvas.yview_scroll(direction * 3, "units")
+        # A few lines per wheel notch so a mouse feels responsive.
+        self._scroll_by(direction * 3)
+        return "break"
+
+    def _on_touchpad_scroll(self, event):
+        """Trackpad scrolling on Tk 9. The delta packs horizontal in the low 16 bits
+        and vertical in the high 16 bits; these events fire rapidly, so scroll a
+        little per event for smooth motion."""
+        d = int(getattr(event, "delta", 0) or 0)
+        dy = (d >> 16) & 0xFFFF
+        if dy >= 0x8000:
+            dy -= 0x10000
+        if dy == 0:
+            dy = d  # fall back if the delta is not packed
+        if dy == 0:
+            return
+        self._scroll_by(-1 if dy > 0 else 1)
         return "break"
 
     def _on_resize(self, event):

@@ -1,7 +1,7 @@
 # Word to PDF Converter
 
 A small local macOS app that batch-converts Word documents (`.doc`/`.docx`) to PDF
-by driving Microsoft Word — the same result as using **File → Save As → PDF**, but
+by driving Microsoft Word, the same result as using **File → Save As → PDF**, but
 for many files at once.
 
 ## Features
@@ -15,12 +15,12 @@ for many files at once.
 - Progress and per-file status while converting
 - Multi-language interface (English and German included), auto-selected from the
   macOS system language
-- Resizable, scrollable window — the layout adapts to the window width and scrolls
+- Resizable, scrollable window: the layout adapts to the window width and scrolls
   when short, while the Convert button stays pinned and always reachable
 
 ## Languages
 
-All interface text lives in JSON translation files under `locales/` — one per
+All interface text lives in JSON translation files under `locales/`, one per
 language (`en.json`, `de.json`). The app picks a language automatically from the
 macOS UI language and falls back to English.
 
@@ -57,7 +57,7 @@ The bundled app is written to `dist/Word to PDF.app`.
 
 - The conversion opens each document in Word, exports it as PDF, and closes it again.
   Word does the rendering, so the PDF matches Word's own output exactly.
-- If a document is already open in Word, close it first — an open document can stall
+- If a document is already open in Word, close it first; an open document can stall
   the conversion.
 - Files that come from email or downloads may show Word's **Enable Editing** banner the
   first time. Open the file in Word once, click **Enable Editing**, save, then convert.

@@ -6,7 +6,7 @@
   "btn_add_files": "Add Files…",
   "btn_add_folder": "Add Folder…",
   "btn_clear_all": "Clear All",
-  "list_empty": "No files yet — use “Add Files…” or “Add Folder…” above.",
+  "list_empty": "No files yet. Use “Add Files…” or “Add Folder…” above.",
   "row_waiting": "Waiting",
   "row_remove": "Remove",
   "row_converting": "Converting…",
@@ -24,15 +24,15 @@
   "name_preview": "First file becomes:  {name}",
 
   "section_dest": "3. Save PDFs to",
-  "dest_same": "Next to each Word document",
-  "dest_same_hint": "Each PDF is saved next to its Word document",
+  "dest_same": "In the same folder as the Word document",
+  "dest_same_hint": "Each PDF is saved in the same folder as its Word document",
   "btn_choose_folder": "Choose Folder…",
 
   "status_start": "Add Word documents to get started.",
   "btn_convert": "Convert to PDF",
   "status_ready": "{n} file(s) ready. Uncheck any you don't want to convert.",
   "status_converting": "Converting… Microsoft Word will open in the background.",
-  "status_done": "Done — {summary}.",
+  "status_done": "Done: {summary}.",
   "summary_converted": "{n} converted",
   "summary_failed": "{n} failed",
 

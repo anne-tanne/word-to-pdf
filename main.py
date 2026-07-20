@@ -1,4 +1,4 @@
-"""Word to PDF Converter — a small local Mac app that batch-converts
+"""Word to PDF Converter: a small local Mac app that batch-converts
 .doc/.docx files to PDF by driving Microsoft Word, exactly like using
 File > Save As > PDF, but for many files at once.
 
@@ -165,7 +165,7 @@ class WordToPdfApp:
     # ---------- UI construction ----------
 
     def _build_ui(self):
-        # Pinned bottom bar (Convert + progress) — always visible, outside the scroll area.
+        # Pinned bottom bar (Convert + progress), always visible, outside the scroll area.
         self.progress = ttk.Progressbar(self.root, mode="determinate")
         self.progress.pack(side="bottom", fill="x", padx=24, pady=(0, 16))
 
@@ -184,7 +184,7 @@ class WordToPdfApp:
         self.convert_button.pack(side="right")
 
         # Everything else lives in a scrollable, width-adaptive content area, so
-        # resizing the window never clips content — it just scrolls.
+        # resizing the window never clips content; it just scrolls.
         outer = self._build_scroll_area(self.root)
         self.root.bind("<Configure>", self._on_resize)
 
@@ -516,7 +516,7 @@ class WordToPdfApp:
         }
 
     def _select_naming_mode(self, mode):
-        """Called when a naming field is clicked/focused — activate that field's mode."""
+        """Called when a naming field is clicked/focused, to activate that field's mode."""
         if self.naming_mode.get() != mode:
             self.naming_mode.set(mode)
         self._update_naming_state()

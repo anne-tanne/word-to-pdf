@@ -6,7 +6,7 @@
   "btn_add_files": "Dateien hinzufügen…",
   "btn_add_folder": "Ordner hinzufügen…",
   "btn_clear_all": "Alle entfernen",
-  "list_empty": "Noch keine Dateien — verwenden Sie oben „Dateien hinzufügen…“ oder „Ordner hinzufügen…“.",
+  "list_empty": "Noch keine Dateien. Verwenden Sie oben „Dateien hinzufügen…“ oder „Ordner hinzufügen…“.",
   "row_waiting": "Wartet",
   "row_remove": "Entfernen",
   "row_converting": "Wird konvertiert…",
@@ -24,15 +24,15 @@
   "name_preview": "Erste Datei wird zu:  {name}",
 
   "section_dest": "3. PDFs speichern unter",
-  "dest_same": "Neben dem jeweiligen Word-Dokument",
-  "dest_same_hint": "Jedes PDF wird neben seinem Word-Dokument gespeichert",
+  "dest_same": "Im selben Ordner wie das Word-Dokument",
+  "dest_same_hint": "Jedes PDF wird im selben Ordner wie das Word-Dokument gespeichert",
   "btn_choose_folder": "Ordner wählen…",
 
   "status_start": "Fügen Sie Word-Dokumente hinzu, um zu beginnen.",
   "btn_convert": "Zu PDF konvertieren",
   "status_ready": "{n} Datei(en) bereit. Entfernen Sie das Häkchen bei allen, die Sie nicht konvertieren möchten.",
   "status_converting": "Wird konvertiert… Microsoft Word wird im Hintergrund geöffnet.",
-  "status_done": "Fertig — {summary}.",
+  "status_done": "Fertig: {summary}.",
   "summary_converted": "{n} konvertiert",
   "summary_failed": "{n} fehlgeschlagen",
 

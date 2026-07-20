@@ -48,11 +48,6 @@ def _locales_dir():
     return os.path.join(_resource_base(), "locales")
 
 
-def _assets_dir():
-    """Folder holding image assets (the header logo), in both dev and the built app."""
-    return os.path.join(_resource_base(), "assets")
-
-
 def _read_locale(lang):
     path = os.path.join(_locales_dir(), f"{lang}.json")
     try:
@@ -117,8 +112,6 @@ class WordToPdfApp:
         self._size_to_screen()
         self.root.configure(bg=BG)
 
-        self.logo_image = self._load_logo()
-
         self.dest_folder = tk.StringVar()
         self.status_text = tk.StringVar(value=t("status_start"))
         self.same_as_source = tk.BooleanVar(value=True)
@@ -153,15 +146,6 @@ class WordToPdfApp:
         y = max((sh - h) // 3, 24)
         self.root.geometry(f"{w}x{h}+{x}+{y}")
 
-    def _load_logo(self):
-        """Load the header logo (a downscaled copy of the app icon); None if missing."""
-        try:
-            img = tk.PhotoImage(file=os.path.join(_assets_dir(), "logo.png"))
-            # 128px source → ~43px, a tidy header size after subsampling.
-            return img.subsample(3, 3)
-        except Exception:
-            return None
-
     # ---------- UI construction ----------
 
     def _build_ui(self):
@@ -191,19 +175,13 @@ class WordToPdfApp:
         header = tk.Frame(outer, bg=BG)
         header.pack(fill="x", pady=(0, 18))
 
-        if self.logo_image is not None:
-            tk.Label(header, image=self.logo_image, bg=BG).pack(side="left", padx=(0, 14))
-
-        header_text = tk.Frame(header, bg=BG)
-        header_text.pack(side="left", fill="x", expand=True)
-
         tk.Label(
-            header_text, text=t("app_title"), font=("SF Pro Display", 26, "bold"),
+            header, text=t("app_title"), font=("SF Pro Display", 26, "bold"),
             bg=BG, fg=TEXT_MAIN, anchor="w",
         ).pack(fill="x")
 
         self.subtitle_label = tk.Label(
-            header_text, text=t("subtitle"),
+            header, text=t("subtitle"),
             font=("SF Pro Text", 12), bg=BG, fg=TEXT_MUTED, anchor="w",
             justify="left", wraplength=460,
         )

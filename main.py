@@ -176,6 +176,79 @@ class WordToPdfApp:
         else:
             messagebox.showinfo(t("dlg_no_found_title"), t("dlg_no_found_msg"))
 
+    # ---------- Dropzone (empty state) ----------
+
+    def _build_dropzone(self, parent):
+        """A clickable drop area with an upload icon and instructions, shown when
+        the list is empty. Clicking it opens the file browser; dragging files or
+        folders over it highlights it, and dropping adds them."""
+        self._dropzone_active = False
+        canvas = tk.Canvas(parent, height=180, bg=CARD_BG, highlightthickness=0,
+                           cursor="pointinghand")
+        canvas.pack(fill="x", pady=6)
+        self.dropzone_canvas = canvas
+        canvas.bind("<Configure>", lambda e: self._draw_dropzone())
+        canvas.bind("<Button-1>", lambda e: self.add_files())
+        self._bind_mousewheel(canvas)
+        if _DND_AVAILABLE and hasattr(canvas, "drop_target_register"):
+            try:
+                canvas.drop_target_register(DND_FILES)
+                canvas.dnd_bind("<<DragEnter>>", self._dropzone_enter)
+                canvas.dnd_bind("<<DragLeave>>", self._dropzone_leave)
+                canvas.dnd_bind("<<Drop>>", self._dropzone_drop)
+            except Exception:
+                pass
+        self._draw_dropzone()
+
+    def _dropzone_enter(self, event):
+        self._dropzone_active = True
+        self._draw_dropzone()
+        return getattr(event, "action", None)
+
+    def _dropzone_leave(self, event):
+        self._dropzone_active = False
+        self._draw_dropzone()
+
+    def _dropzone_drop(self, event):
+        self._dropzone_active = False
+        self._draw_dropzone()
+        return self._on_drop(event)
+
+    def _draw_dropzone(self):
+        c = getattr(self, "dropzone_canvas", None)
+        if c is None or not c.winfo_exists():
+            return
+        c.delete("all")
+        w, h = c.winfo_width(), c.winfo_height()
+        if w <= 1 or h <= 1:
+            return
+        active = getattr(self, "_dropzone_active", False)
+        border = ACCENT if active else "#c9c4d6"
+        icon = ACCENT if active else "#aaa2c0"
+        c.configure(bg="#f3f0fb" if active else CARD_BG)
+
+        m = 6
+        c.create_rectangle(m, m, w - m, h - m, outline=border, dash=(6, 5), width=2)
+
+        cx = w // 2
+        top = h // 2 - 40
+        # upward arrow
+        c.create_line(cx, top + 30, cx, top + 2, fill=icon, width=3, capstyle="round")
+        c.create_line(cx - 10, top + 12, cx, top + 2, fill=icon, width=3,
+                      capstyle="round", joinstyle="round")
+        c.create_line(cx + 10, top + 12, cx, top + 2, fill=icon, width=3,
+                      capstyle="round", joinstyle="round")
+        # tray beneath the arrow
+        ty = top + 40
+        c.create_line(cx - 18, ty - 7, cx - 18, ty, fill=icon, width=3, capstyle="round")
+        c.create_line(cx + 18, ty - 7, cx + 18, ty, fill=icon, width=3, capstyle="round")
+        c.create_line(cx - 18, ty, cx + 18, ty, fill=icon, width=3, capstyle="round")
+
+        c.create_text(cx, h // 2 + 30, text=t("dropzone_primary"),
+                      fill=TEXT_MAIN, font=("SF Pro Text", 13, "bold"))
+        c.create_text(cx, h // 2 + 52, text=t("dropzone_secondary"),
+                      fill=ACCENT if active else TEXT_MUTED, font=("SF Pro Text", 11))
+
     def _size_to_screen(self):
         """Open at a comfortable size that always fits the current screen, centered."""
         self.root.update_idletasks()
@@ -509,13 +582,7 @@ class WordToPdfApp:
         self.file_rows = {}
 
         if not self.files:
-            empty = tk.Label(
-                self.list_frame, text=t("list_empty"),
-                font=("SF Pro Text", 12), bg=CARD_BG, fg=TEXT_MUTED,
-                wraplength=460, justify="left", anchor="w",
-            )
-            empty.pack(fill="x", pady=16, padx=2)
-            self._bind_mousewheel(empty)
+            self._build_dropzone(self.list_frame)
             return
 
         for path in self.files:

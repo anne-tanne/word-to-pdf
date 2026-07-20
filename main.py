@@ -328,7 +328,9 @@ class WordToPdfApp:
     def _build_scroll_area(self, parent):
         """Return a padded content frame that scrolls vertically and whose width
         tracks the window, so content adapts on resize and is never clipped."""
-        canvas = tk.Canvas(parent, bg=BG, highlightthickness=0)
+        # yscrollincrement=1 makes yview_scroll count in pixels, so trackpad
+        # deltas translate to smooth, proportional scrolling.
+        canvas = tk.Canvas(parent, bg=BG, highlightthickness=0, yscrollincrement=1)
         vbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=vbar.set)
         vbar.pack(side="right", fill="y")
@@ -376,23 +378,22 @@ class WordToPdfApp:
             if delta == 0:
                 return
             direction = -1 if delta > 0 else 1
-        # A few lines per wheel notch so a mouse feels responsive.
-        self._scroll_by(direction * 3)
+        # A comfortable number of pixels per wheel notch (canvas scrolls in pixels).
+        self._scroll_by(direction * 50)
         return "break"
 
     def _on_touchpad_scroll(self, event):
-        """Trackpad scrolling on Tk 9. The delta packs horizontal in the low 16 bits
-        and vertical in the high 16 bits; these events fire rapidly, so scroll a
-        little per event for smooth motion."""
-        d = int(getattr(event, "delta", 0) or 0)
-        dy = (d >> 16) & 0xFFFF
-        if dy >= 0x8000:
-            dy -= 0x10000
-        if dy == 0:
-            dy = d  # fall back if the delta is not packed
-        if dy == 0:
+        """Trackpad scrolling on Tk 9. Decode the packed delta with Tk's own helper
+        (deltaY is the vertical component) and scroll by that many pixels. Using the
+        real magnitude keeps it smooth, and the OS has already applied the user's
+        scroll-direction setting to the delta."""
+        try:
+            _dx, dy = self.root.tk.call("tk::PreciseScrollDeltas", event.delta)
+            dy = int(dy)
+        except (tk.TclError, ValueError, TypeError):
             return
-        self._scroll_by(-1 if dy > 0 else 1)
+        if dy:
+            self._scroll_by(-dy)
         return "break"
 
     def _on_resize(self, event):

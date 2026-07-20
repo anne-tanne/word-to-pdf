@@ -102,7 +102,9 @@ class WordToPdfApp:
         self.root = root
         self.root.title(t("app_title"))
         self.root.geometry("660x880")
-        self.root.minsize(580, 640)
+        # Min width keeps the button rows from clipping; height can shrink freely
+        # because the content scrolls.
+        self.root.minsize(560, 320)
         self.root.configure(bg=BG)
 
         self.dest_folder = tk.StringVar()
@@ -131,8 +133,28 @@ class WordToPdfApp:
     # ---------- UI construction ----------
 
     def _build_ui(self):
-        outer = tk.Frame(self.root, bg=BG)
-        outer.pack(fill="both", expand=True, padx=24, pady=20)
+        # Pinned bottom bar (Convert + progress) — always visible, outside the scroll area.
+        self.progress = ttk.Progressbar(self.root, mode="determinate")
+        self.progress.pack(side="bottom", fill="x", padx=24, pady=(0, 16))
+
+        bottom = tk.Frame(self.root, bg=BG)
+        bottom.pack(side="bottom", fill="x", padx=24, pady=(6, 0))
+
+        self.status_label = tk.Label(
+            bottom, textvariable=self.status_text, font=("SF Pro Text", 11),
+            bg=BG, fg=TEXT_MUTED, anchor="w", justify="left", wraplength=380,
+        )
+        self.status_label.pack(side="left", fill="x", expand=True)
+
+        self.convert_button = self._button(
+            bottom, t("btn_convert"), self.start_conversion, primary=True
+        )
+        self.convert_button.pack(side="right")
+
+        # Everything else lives in a scrollable, width-adaptive content area, so
+        # resizing the window never clips content — it just scrolls.
+        outer = self._build_scroll_area(self.root)
+        self.root.bind("<Configure>", self._on_resize)
 
         title = tk.Label(
             outer, text=t("app_title"), font=("SF Pro Display", 20, "bold"),
@@ -146,58 +168,24 @@ class WordToPdfApp:
         )
         subtitle.pack(fill="x", pady=(2, 16))
 
-        # --- Bottom action bar + progress ---
-        # Packed before the cards and anchored to the bottom so the Convert button
-        # and progress bar always stay visible, even if the window is short.
-        self.progress = ttk.Progressbar(outer, mode="determinate")
-        self.progress.pack(side="bottom", fill="x", pady=(10, 0))
-
-        bottom = tk.Frame(outer, bg=BG)
-        bottom.pack(side="bottom", fill="x")
-
-        self.status_label = tk.Label(
-            bottom, textvariable=self.status_text, font=("SF Pro Text", 11),
-            bg=BG, fg=TEXT_MUTED, anchor="w", justify="left", wraplength=380,
-        )
-        self.status_label.pack(side="left", fill="x", expand=True)
-
-        self.convert_button = self._button(
-            bottom, t("btn_convert"), self.start_conversion, primary=True
-        )
-        self.convert_button.pack(side="right")
-
         # --- File list card ---
-        list_card = self._card(outer, expand=True)
+        list_card = self._card(outer)
 
-        header_row = tk.Frame(list_card, bg=CARD_BG)
-        header_row.pack(fill="x")
+        self._section_label(list_card, t("section_files"))
 
-        self._section_label(header_row, t("section_files")).pack(side="left")
+        button_row = tk.Frame(list_card, bg=CARD_BG)
+        button_row.pack(fill="x", pady=(8, 0))
 
-        clear_btn = self._button(header_row, t("btn_clear_all"), self.clear_files)
+        add_files_btn = self._button(button_row, t("btn_add_files"), self.add_files, primary=True)
+        add_files_btn.pack(side="left")
+        add_folder_btn = self._button(button_row, t("btn_add_folder"), self.add_folder)
+        add_folder_btn.pack(side="left", padx=(8, 0))
+
+        clear_btn = self._button(button_row, t("btn_clear_all"), self.clear_files)
         clear_btn.pack(side="right")
-        add_folder_btn = self._button(header_row, t("btn_add_folder"), self.add_folder)
-        add_folder_btn.pack(side="right", padx=(0, 8))
-        add_files_btn = self._button(header_row, t("btn_add_files"), self.add_files, primary=True)
-        add_files_btn.pack(side="right", padx=(0, 8))
 
-        list_container = tk.Frame(list_card, bg=CARD_BG)
-        list_container.pack(fill="both", expand=True, pady=(10, 0))
-
-        canvas = tk.Canvas(list_container, bg=CARD_BG, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(list_container, orient="vertical", command=canvas.yview)
-        self.list_frame = tk.Frame(canvas, bg=CARD_BG)
-
-        self.list_frame.bind(
-            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        list_window = canvas.create_window((0, 0), window=self.list_frame, anchor="nw", width=1)
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.bind("<Configure>", lambda e: canvas.itemconfig(list_window, width=e.width))
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        self.list_canvas = canvas
+        self.list_frame = tk.Frame(list_card, bg=CARD_BG)
+        self.list_frame.pack(fill="both", expand=True, pady=(10, 0))
 
         # --- Naming card ---
         naming_card = self._card(outer)
@@ -220,16 +208,14 @@ class WordToPdfApp:
         ).pack(side="left")
         tk.Label(affix_row, text=t("name_before"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
-        self.prefix_entry = tk.Entry(affix_row, textvariable=self.prefix_text, width=10,
+        self.prefix_entry = tk.Entry(affix_row, textvariable=self.prefix_text, width=9,
                                      font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
         self.prefix_entry.pack(side="left", ipady=3)
         tk.Label(affix_row, text=t("name_and_after"), font=("SF Pro Text", 11), bg=CARD_BG,
                  fg=TEXT_MUTED).pack(side="left", padx=(6, 3))
-        self.suffix_entry = tk.Entry(affix_row, textvariable=self.suffix_text, width=10,
+        self.suffix_entry = tk.Entry(affix_row, textvariable=self.suffix_text, width=9,
                                      font=("SF Pro Text", 12), relief="flat", bg="#f0f0f2", fg=TEXT_MAIN)
         self.suffix_entry.pack(side="left", ipady=3)
-        tk.Label(affix_row, text=t("name_the_name"), font=("SF Pro Text", 11), bg=CARD_BG,
-                 fg=TEXT_MUTED).pack(side="left", padx=(6, 0))
 
         number_row = tk.Frame(naming_card, bg=CARD_BG)
         number_row.pack(fill="x", pady=(4, 0))
@@ -304,6 +290,49 @@ class WordToPdfApp:
             btn.bind("<Leave>", lambda e: btn.configure(bg=ACCENT))
         return btn
 
+    def _build_scroll_area(self, parent):
+        """Return a padded content frame that scrolls vertically and whose width
+        tracks the window, so content adapts on resize and is never clipped."""
+        canvas = tk.Canvas(parent, bg=BG, highlightthickness=0)
+        vbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vbar.set)
+        vbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        self._page_canvas = canvas
+
+        inner = tk.Frame(canvas, bg=BG)
+        window = canvas.create_window((0, 0), window=inner, anchor="nw")
+        # Keep the scroll region in sync with the content height…
+        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        # …and make the content width follow the window (horizontal responsiveness).
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(window, width=e.width))
+
+        # Mouse-wheel / trackpad scrolling anywhere in the window.
+        canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        canvas.bind_all("<Button-4>", self._on_mousewheel)
+        canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+        content = tk.Frame(inner, bg=BG)
+        content.pack(fill="both", expand=True, padx=24, pady=20)
+        return content
+
+    def _on_mousewheel(self, event):
+        canvas = getattr(self, "_page_canvas", None)
+        if canvas is None:
+            return
+        if getattr(event, "num", None) == 4:       # Linux scroll up
+            delta = 1
+        elif getattr(event, "num", None) == 5:     # Linux scroll down
+            delta = -1
+        else:                                        # macOS / Windows
+            delta = event.delta
+        canvas.yview_scroll(-1 if delta > 0 else 1, "units")
+
+    def _on_resize(self, event):
+        if event.widget is self.root:
+            # Let the status text wrap to the available width.
+            self.status_label.configure(wraplength=max(event.width - 220, 160))
+
     # ---------- File selection ----------
 
     def add_files(self):
@@ -368,6 +397,7 @@ class WordToPdfApp:
             tk.Label(
                 self.list_frame, text=t("list_empty"),
                 font=("SF Pro Text", 12), bg=CARD_BG, fg=TEXT_MUTED,
+                wraplength=340, justify="center",
             ).pack(pady=20)
             return
 

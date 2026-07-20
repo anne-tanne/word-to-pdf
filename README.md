@@ -15,6 +15,8 @@ for many files at once.
 - Progress and per-file status while converting
 - Multi-language interface (English and German included), auto-selected from the
   macOS system language
+- Resizable, scrollable window — the layout adapts to the window width and scrolls
+  when short, while the Convert button stays pinned and always reachable
 
 ## Languages
 
